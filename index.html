@@ -233,17 +233,28 @@
 
       if(ORDER_ENDPOINT){
         try{
-          const res = await fetch(ORDER_ENDPOINT, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-          });
-          if(res.status === 302){
-            window.location.href = res.headers.get('Location') || '/';
-            return;
-          }
-          const data = await res.json();
-          if(data.checkout_url){ window.location.href = data.checkout_url; return; }
-          msg.textContent = 'Bestellung übermittelt. Danke!';
+         const res = await fetch(ORDER_ENDPOINT, {
+  method: 'POST', headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify(payload)
+});
+
+const text = await res.text();
+let data = null;
+try { data = JSON.parse(text); } catch {}
+
+if (!res.ok) {
+  console.error('Worker-Fehler:', res.status, text);
+  msg.textContent = 'Fehler ' + res.status + ': ' + (data?.error || text || 'Unbekannt');
+  return;
+}
+
+if (data?.checkout_url) {
+  window.location.href = data.checkout_url;
+  return;
+}
+
+msg.textContent = 'Antwort ohne checkout_url: ' + (text || '(leer)');
+
           cart.clear(); saveCart(); renderCart(); (e.target).reset();
           return;
         }catch(err){
